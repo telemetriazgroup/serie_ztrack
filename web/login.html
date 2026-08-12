@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/monitor/serial/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body class="auth-body">
     <div class="bg-atmosphere" aria-hidden="true"></div>
@@ -37,7 +37,7 @@
       </form>
     </main>
     <script type="module">
-      import { login, getToken, getLugar, webUrl } from "/monitor/serial/js/auth.js";
+      import { login, getToken, getLugar, webUrl, PROXY_MODO } from "./js/auth.js";
 
       if (getToken()) {
         const params = new URLSearchParams(location.search);
@@ -63,6 +63,8 @@
           err.textContent = ex.message;
         }
       });
+
+      console.info("[ztrack] proxy modo:", PROXY_MODO);
     </script>
   </body>
 </html>

@@ -1,7 +1,7 @@
 import { resolverTransporte, TransporteAgente } from "./transporte.js";
 import { ConsolaSerial, DecodificadorLineas } from "./consola.js";
 import { diagnostico } from "./diagnostico.js";
-import { apiFetch, isSuperusuario, logout, requireAuth } from "./auth.js";
+import { apiFetch, apiUrl, isSuperusuario, logout, requireAuth } from "./auth.js";
 import { SesionTracker } from "./sesion_tracker.js";
 import {
   ProtocoloSerie,
@@ -121,6 +121,8 @@ async function init() {
   window.addEventListener("beforeunload", () => {
     tracker.cerrar("navegacion");
   });
+  const linkStats = document.getElementById("link-estadisticas");
+  if (linkStats) linkStats.href = apiUrl("/serie/estadisticas");
 
   consola = new ConsolaSerial(ui.consola, {
     maxLineas: 400,

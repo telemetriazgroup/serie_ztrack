@@ -1,4 +1,4 @@
-import { API_BASE, WEB_BASE, apiUrl, webUrl } from "./config.js";
+import { API_BASE, WEB_BASE, PROXY_MODO, apiUrl, webUrl } from "./config.js";
 
 const TOKEN_KEY = "ztrack_token";
 const USER_KEY = "ztrack_user";
@@ -125,4 +125,4 @@ export async function obtenerGeoLugar() {
   return { lugar: lugarGuardado || null, latitud, longitud };
 }
 
-export { API_BASE, WEB_BASE, apiUrl, webUrl };
+export { API_BASE, WEB_BASE, PROXY_MODO, apiUrl, webUrl };
