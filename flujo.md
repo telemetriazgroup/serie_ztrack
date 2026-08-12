@@ -234,7 +234,8 @@ Contenedores (nombres distintos para evitar conflicto con otros ZTrack):
 - Login: `http://localhost:9490/monitor/serial/login.html`
 - Docs Swagger: `http://localhost:9490/docs`
 - Health: `http://localhost:9490/monitor/health`
-- PostgreSQL host: puerto `5433`
+- PostgreSQL host (opcional): puerto `9543` → contenedor `5432`  
+  (la API usa la red interna `db:5432`, no necesita este puerto)
 
 ```bash
 docker logs -f ztrack_api_serie

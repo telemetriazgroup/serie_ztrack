@@ -10,7 +10,8 @@ services:
       # Mantiene el volumen histórico para no perder datos
       - ztrack_pgdata:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      # Host distinto a 5433 (ya usado por otro proyecto ZTrack)
+      - "9543:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ztrack -d ztrack"]
       interval: 5s
