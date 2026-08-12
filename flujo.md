@@ -33,7 +33,7 @@ La fecha/hora se toma en zona horaria `America/Lima` (configurable con `TIMEZONE
 ### Endpoint
 
 ```
-GET /serie/generar/{serie}
+GET /monitor/serie/generar/{serie}
 ```
 
 ### Caso A — Dispositivo nuevo (primera vez)

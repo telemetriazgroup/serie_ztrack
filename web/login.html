@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZTrack — Acceso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/monitor/serial/styles.css" />
+  </head>
+  <body class="auth-body">
+    <div class="bg-atmosphere" aria-hidden="true"></div>
+    <main class="auth-card">
+      <div class="brand">
+        <span class="brand-mark">ZTrack</span>
+        <span class="brand-sub">Acceso al serial web</span>
+      </div>
+      <form id="form-login" class="auth-form">
+        <label class="field">
+          <span>Usuario</span>
+          <input id="username" name="username" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <label class="field">
+          <span>Lugar / sede</span>
+          <input id="lugar" name="lugar" placeholder="Ej. Planta Lima" />
+        </label>
+        <button class="btn primary" type="submit">Ingresar</button>
+        <p id="login-error" class="mensaje" data-kind="err"></p>
+      </form>
+    </main>
+    <script type="module">
+      import { login, getToken, getLugar, webUrl } from "/monitor/serial/js/auth.js";
+
+      if (getToken()) {
+        const params = new URLSearchParams(location.search);
+        location.href = params.get("next") || webUrl("/");
+      }
+
+      const lugarEl = document.getElementById("lugar");
+      lugarEl.value = getLugar() || "";
+
+      document.getElementById("form-login").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const err = document.getElementById("login-error");
+        err.textContent = "";
+        try {
+          await login(
+            document.getElementById("username").value.trim(),
+            document.getElementById("password").value,
+            lugarEl.value.trim()
+          );
+          const params = new URLSearchParams(location.search);
+          location.href = params.get("next") || webUrl("/");
+        } catch (ex) {
+          err.textContent = ex.message;
+        }
+      });
+    </script>
+  </body>
+</html>

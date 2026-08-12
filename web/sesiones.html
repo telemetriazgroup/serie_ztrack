@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZTrack — Sesiones serial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/monitor/serial/styles.css" />
+  </head>
+  <body>
+    <div class="bg-atmosphere" aria-hidden="true"></div>
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">ZTrack</span>
+        <span class="brand-sub">Sesiones serial</span>
+      </div>
+      <nav class="top-meta">
+        <a class="pill" href="/monitor/serial/">Serial</a>
+        <a class="pill" id="nav-users" href="/monitor/serial/usuarios.html" hidden>Usuarios</a>
+        <span id="user-pill" class="pill" data-mode="web">—</span>
+        <button id="btn-logout" class="btn tiny" type="button">Salir</button>
+      </nav>
+    </header>
+
+    <main class="layout layout-admin">
+      <section class="panel">
+        <div class="console-head">
+          <h2>Historial de sincronizaciones</h2>
+          <button id="btn-refresh" class="btn tiny" type="button">Actualizar</button>
+        </div>
+        <p class="hint">Cada conexión serial queda asociada al usuario, IP, lugar, dispositivo e intervalo inicio/fin.</p>
+        <div id="debug-box" class="banner warn" hidden></div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabla-sesiones">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Dispositivo</th>
+                <th>IP</th>
+                <th>Lugar</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>RX</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="detalle-panel" hidden>
+        <div class="console-head">
+          <h2>Detalle sesión #<span id="det-id"></span></h2>
+          <button id="btn-cerrar-det" class="btn tiny" type="button">Cerrar</button>
+        </div>
+        <pre id="det-meta" class="diag-box"></pre>
+        <div id="det-log" class="consola sesion-log"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/monitor/serial/js/sesiones_page.js"></script>
+  </body>
+</html>

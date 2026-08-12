@@ -2,8 +2,8 @@
 
 Herramienta web para configurar equipos de telemetría **sin Arduino IDE**: conectar por USB/serial, detectar el código del equipo y asignarle el código ZG generado por la API.
 
-UI: `http://localhost:9490/serial/`  
-API códigos: puerto `9490` (ver `flujo.md`)
+UI: `http://localhost:9490/monitor/serial/`  
+API: prefijo `/monitor` · puerto `9490` (ver `flujo.md`)
 
 ---
 

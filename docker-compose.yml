@@ -26,6 +26,9 @@ services:
       DATABASE_URL: postgresql://ztrack:ztrack@db:5432/ztrack
       TIMEZONE: America/Lima
       API_PORT: "9490"
+      JWT_SECRET: "${JWT_SECRET:-ztrack-serie-jwt-secret-change-me-2023}"
+      SUPERUSER_USERNAME: ztrack
+      SUPERUSER_PASSWORD: proyectoztrack2023
       # 1 = HTTPS autofirmado (necesario para Web Serial desde el celular por IP LAN)
       ENABLE_HTTPS: "${ENABLE_HTTPS:-0}"
     ports:

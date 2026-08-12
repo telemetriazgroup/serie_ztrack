@@ -475,6 +475,110 @@ input.pulse {
   font-size: 0.82rem;
 }
 
+.auth-body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  background: linear-gradient(180deg, rgba(26, 45, 54, 0.95), rgba(16, 28, 34, 0.95));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.3rem 1.5rem;
+  box-shadow: var(--shadow);
+  animation: fade-up 0.45s ease both;
+}
+
+.auth-form .btn.primary {
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+.layout-admin {
+  grid-template-columns: 1fr;
+  grid-template-areas: none;
+}
+
+.layout-admin .panel {
+  grid-area: auto;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.55rem 0.45rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.data-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.data-table code {
+  font-family: var(--mono);
+  font-size: 0.8em;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.badge[data-estado="activo"],
+.badge[data-estado="activa"],
+.badge[data-estado="cerrada"] {
+  color: var(--ok);
+  border-color: rgba(93, 222, 160, 0.35);
+}
+
+.badge[data-estado="archivado"],
+.badge[data-estado="error"] {
+  color: var(--warn);
+  border-color: rgba(240, 198, 116, 0.4);
+}
+
+.sesion-log {
+  margin-top: 0.7rem;
+  max-height: 50vh;
+}
+
+.top-meta a.pill {
+  text-decoration: none;
+  color: inherit;
+}
+
+.top-meta a.pill:hover {
+  border-color: rgba(46, 196, 182, 0.5);
+  color: var(--accent);
+}
+
 .foot a {
   color: var(--accent);
   text-decoration: none;

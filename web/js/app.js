@@ -1,6 +1,8 @@
 import { resolverTransporte, TransporteAgente } from "./transporte.js";
 import { ConsolaSerial, DecodificadorLineas } from "./consola.js";
 import { diagnostico } from "./diagnostico.js";
+import { apiFetch, isSuperusuario, logout, requireAuth } from "./auth.js";
+import { SesionTracker } from "./sesion_tracker.js";
 import {
   ProtocoloSerie,
   generarCodigoApi,
@@ -49,6 +51,10 @@ const ui = {
   btnDiagCopy: $("#btn-diag-copy"),
   btnDiagExport: $("#btn-diag-export"),
   btnDiagReset: $("#btn-diag-reset"),
+  panelDiag: $("#panel-diag"),
+  userPill: $("#user-pill"),
+  navUsers: $("#nav-users"),
+  btnLogout: $("#btn-logout"),
 };
 
 let transporte = null;
@@ -60,6 +66,8 @@ let puertoWebElegido = null;
 let lastCodigoUi = "";
 let lastCodigoUiAt = 0;
 let lastSilencioLog = 0;
+const tracker = new SesionTracker();
+let currentUser = null;
 
 function esContextoSeguro() {
   return window.isSecureContext;
@@ -94,9 +102,26 @@ function actualizarCodigoUi(codigo) {
   lastCodigoUi = codigo;
   lastCodigoUiAt = now;
   ui.codigoDetectado.value = codigo;
+  tracker.setCodigoDetectado(codigo);
 }
 
 async function init() {
+  currentUser = await requireAuth();
+  if (!currentUser) return;
+
+  if (ui.userPill) ui.userPill.textContent = `${currentUser.username} · ${currentUser.rol}`;
+  if (currentUser.rol === "superusuario") {
+    if (ui.navUsers) ui.navUsers.hidden = false;
+    if (ui.panelDiag) ui.panelDiag.hidden = false;
+  }
+
+  ui.btnLogout?.addEventListener("click", () => {
+    tracker.cerrar("logout").finally(() => logout());
+  });
+  window.addEventListener("beforeunload", () => {
+    tracker.cerrar("navegacion");
+  });
+
   consola = new ConsolaSerial(ui.consola, {
     maxLineas: 400,
     maxCola: 2500,
@@ -171,6 +196,7 @@ function wireTransporte() {
     if (Array.isArray(lineas)) {
       for (const linea of lineas) {
         consola.rxLinea(linea);
+        tracker.push("rx", linea);
         const codigos = protocolo.observarTexto(linea);
         if (codigos.length) actualizarCodigoUi(protocolo.codigoDetectado || codigos[0]);
       }
@@ -194,7 +220,25 @@ function wireTransporte() {
       ui.btnDesconectar.disabled = false;
       ui.dtrWarn.hidden = false;
       decoder = new DecodificadorLineas();
-      if (st.tipo === "reconectado") logSistema(st.mensaje || "Reconectado", "ok");
+      if (st.tipo === "reconectado") {
+        logSistema(st.mensaje || "Reconectado", "ok");
+      }
+      // Una sesión BD por conexión de usuario; reopens del puerto reutilizan la misma
+      if (!tracker.sesionId) {
+        const baudrate = Number(ui.baud.value);
+        tracker
+          .iniciar({
+            etiqueta: st.etiqueta || ui.puertoLabel.textContent,
+            vid: st.vid,
+            pid: st.pid,
+            usbVendorId: puertoWebElegido?.usbVendorId,
+            usbProductId: puertoWebElegido?.usbProductId,
+            ruta: st.ruta,
+            baudrate,
+          })
+          .then((s) => logSistema(`Sesión serial #${s.id} iniciada (usuario ${currentUser.username})`, "ok"))
+          .catch((e) => logSistema(e.message, "err"));
+      }
     } else if (st.tipo === "reconectando") {
       setEstado("Reconectando…");
       logSistema(st.mensaje || "Reconectando…", "warn");
@@ -204,18 +248,24 @@ function wireTransporte() {
       ui.btnDesconectar.disabled = true;
       ui.dtrWarn.hidden = true;
       if (st.motivo) logSistema(st.motivo, "warn");
+      tracker.cerrar(st.motivo || "desconectado").catch(() => {});
     } else if (st.tipo === "error-stream" || st.tipo === "diag") {
       logSistema(st.mensaje, "warn");
+      tracker.push("warn", st.mensaje);
     } else if (st.tipo === "rx-descartado") {
       logSistema(st.mensaje, "warn");
     } else if (st.tipo === "rx-silencio") {
       const now = Date.now();
       if (now - lastSilencioLog > 12000) {
         lastSilencioLog = now;
-        logSistema(`${st.mensaje} · mira Diagnóstico (auto-reenganche activo)`, "sys");
+        const tip = isSuperusuario()
+          ? `${st.mensaje} · mira Diagnóstico`
+          : st.mensaje;
+        logSistema(tip, "sys");
       }
     } else if (st.tipo === "error") {
       logSistema(st.mensaje, "err");
+      tracker.push("err", st.mensaje);
     } else if (st.evt === "puertos") {
       refrescarPuertosAgente().catch(() => {});
     }
@@ -223,6 +273,7 @@ function wireTransporte() {
 }
 
 function wireDiagnostico() {
+  if (!isSuperusuario()) return;
   diagnostico.onUpdate((snap) => renderDiagnostico(snap));
 
   ui.btnReenganche?.addEventListener("click", async () => {
@@ -425,6 +476,7 @@ async function enviarTx() {
   try {
     await transporte.escribir(line);
     consola.log(text, "tx");
+    tracker.push("tx", text);
     ui.inputTx.value = "";
   } catch (e) {
     logSistema(`TX falló: ${e.message}`, "err");
@@ -479,8 +531,9 @@ async function flujoGenerar(escribirAlDispositivo) {
   ui.btnSoloGenerar.disabled = true;
 
   try {
-    const resp = await generarCodigoApi(origen, "");
+    const resp = await generarCodigoApi(origen, "", apiFetch);
     ui.codigoNuevo.value = resp.codigo;
+    tracker.setCodigoAsignado(resp.codigo);
     const msg = resp.ya_asignado
       ? `Ya asignado: ${resp.codigo}`
       : `Nuevo código: ${resp.codigo}`;
@@ -498,6 +551,7 @@ async function flujoGenerar(escribirAlDispositivo) {
         const cmd = protocolo.construirAsignacion(resp.codigo);
         await transporte.escribir(cmd);
         consola.log(cmd.trim(), "tx");
+        tracker.push("tx", cmd.trim());
         logSistema(`Enviado al equipo: ${cmd.trim()}`, "ok");
         ui.mensajeAsignacion.textContent = `${resp.mensaje}. Escrito al dispositivo por serial.`;
       }

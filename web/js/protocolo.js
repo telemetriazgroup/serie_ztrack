@@ -103,11 +103,14 @@ export class ProtocoloSerie {
 
 /**
  * Llama a la API ZTrack para generar/recuperar código.
+ * @param {string} serieOrigen
+ * @param {string} apiBase
+ * @param {(path:string, opts?:RequestInit)=>Promise<Response>} [fetcher]
  */
-export async function generarCodigoApi(serieOrigen, apiBase = "") {
+export async function generarCodigoApi(serieOrigen, apiBase = "", fetcher = fetch) {
   const base = apiBase.replace(/\/$/, "");
   const url = `${base}/serie/generar/${encodeURIComponent(serieOrigen)}`;
-  const res = await fetch(url);
+  const res = await fetcher(url);
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`API generar falló (${res.status}): ${err}`);

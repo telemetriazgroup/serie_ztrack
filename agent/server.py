@@ -27,7 +27,8 @@ ORIGINS = {
     o.strip()
     for o in os.getenv(
         "ZTRACK_AGENT_ORIGINS",
-        "http://localhost:9490,http://127.0.0.1:9490,https://localhost:9490",
+        "http://localhost:9490,http://127.0.0.1:9490,https://localhost:9490,"
+        "http://localhost:9490/monitor,http://127.0.0.1:9490/monitor",
     ).split(",")
     if o.strip()
 }

@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/serial/styles.css" />
+    <link rel="stylesheet" href="/monitor/serial/styles.css" />
   </head>
   <body>
     <div class="bg-atmosphere" aria-hidden="true"></div>
@@ -22,8 +22,12 @@
         <span class="brand-sub">Serial Web</span>
       </div>
       <div class="top-meta">
+        <a class="pill" href="/monitor/serial/sesiones.html">Sesiones</a>
+        <a class="pill" id="nav-users" href="/monitor/serial/usuarios.html" hidden>Usuarios</a>
+        <span id="user-pill" class="pill" data-mode="agente">—</span>
         <span id="modo-transporte" class="pill" data-mode="none">Detectando…</span>
         <span id="estado-conexion" class="estado" data-ok="0">Iniciando</span>
+        <button id="btn-logout" class="btn tiny" type="button">Salir</button>
       </div>
     </header>
 
@@ -131,9 +135,9 @@
         </div>
       </section>
 
-      <section class="panel panel-diag">
+      <section class="panel panel-diag" id="panel-diag" hidden>
         <div class="console-head">
-          <h2>Diagnóstico serial</h2>
+          <h2>Diagnóstico serial <span class="pill" data-mode="agente">superusuario</span></h2>
           <div class="console-tools">
             <button type="button" id="btn-reenganche" class="btn tiny">Reenganchar RX</button>
             <button type="button" id="btn-reabrir" class="btn tiny">Reabrir puerto</button>
@@ -174,10 +178,10 @@
 
     <footer class="foot">
       <a href="/docs">API docs</a>
-      <a href="/serie/estadisticas">Estadísticas</a>
-      <span>Puerto API 9490</span>
+      <a href="/monitor/serie/estadisticas">Estadísticas</a>
+      <span>Base /monitor · puerto 9490</span>
     </footer>
 
-    <script type="module" src="/serial/js/app.js"></script>
+    <script type="module" src="/monitor/serial/js/app.js"></script>
   </body>
 </html>
