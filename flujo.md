@@ -223,14 +223,21 @@ Rangos calculados en zona `America/Lima`:
 docker compose up -d --build
 ```
 
-- API: `http://localhost:9490`
-- Docs Swagger: `http://localhost:9490/docs`
-- Health: `http://localhost:9490/health`
-- PostgreSQL interno: servicio `db` (puerto host opcional `5433`)
+Contenedores (nombres distintos para evitar conflicto con otros ZTrack):
 
-Detener:
+| Servicio compose | Contenedor |
+|------------------|------------|
+| `api` | `ztrack_api_serie` |
+| `db` | `ztrack_db_serie` |
+
+- UI/API: `http://localhost:9490/monitor/`
+- Login: `http://localhost:9490/monitor/serial/login.html`
+- Docs Swagger: `http://localhost:9490/docs`
+- Health: `http://localhost:9490/monitor/health`
+- PostgreSQL host: puerto `5433`
 
 ```bash
+docker logs -f ztrack_api_serie
 docker compose down
 ```
 

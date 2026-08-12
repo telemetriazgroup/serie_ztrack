@@ -1,12 +1,13 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: ztrack_db
+    container_name: ztrack_db_serie
     environment:
       POSTGRES_USER: ztrack
       POSTGRES_PASSWORD: ztrack
       POSTGRES_DB: ztrack
     volumes:
+      # Mantiene el volumen histórico para no perder datos
       - ztrack_pgdata:/var/lib/postgresql/data
     ports:
       - "5433:5432"
@@ -18,7 +19,8 @@ services:
 
   api:
     build: .
-    container_name: ztrack_api
+    image: serie_ztrack-api:latest
+    container_name: ztrack_api_serie
     depends_on:
       db:
         condition: service_healthy
