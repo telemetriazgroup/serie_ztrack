@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ztrack_db
+    environment:
+      POSTGRES_USER: ztrack
+      POSTGRES_PASSWORD: ztrack
+      POSTGRES_DB: ztrack
+    volumes:
+      - ztrack_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ztrack -d ztrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: ztrack_api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://ztrack:ztrack@db:5432/ztrack
+      TIMEZONE: America/Lima
+      API_PORT: "9490"
+      # 1 = HTTPS autofirmado (necesario para Web Serial desde el celular por IP LAN)
+      ENABLE_HTTPS: "${ENABLE_HTTPS:-0}"
+    ports:
+      - "9490:9490"
+    volumes:
+      - ztrack_certs:/certs
+    restart: unless-stopped
+
+volumes:
+  ztrack_pgdata:
+  ztrack_certs:

@@ -1,0 +1,13 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.env
+.venv
+venv
+.venv-agent
+agent/.venv
+**/__pycache__
+*.md
+!flujo.md
+!flujo_serial.md

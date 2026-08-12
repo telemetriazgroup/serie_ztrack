@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c1a1f" />
+    <title>ZTrack Serial Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/serial/styles.css" />
+  </head>
+  <body>
+    <div class="bg-atmosphere" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">ZTrack</span>
+        <span class="brand-sub">Serial Web</span>
+      </div>
+      <div class="top-meta">
+        <span id="modo-transporte" class="pill" data-mode="none">Detectando…</span>
+        <span id="estado-conexion" class="estado" data-ok="0">Iniciando</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel panel-conn">
+        <h2>Conexión</h2>
+        <p class="hint">Sustituto del Monitor Serial de Arduino IDE. Funciona en Windows, Linux, macOS y Chrome Android (USB-OTG).</p>
+
+        <div id="aviso-contexto" class="banner warn" hidden>
+          Este sitio no está en contexto seguro. Web Serial requiere <strong>HTTPS</strong> o <strong>localhost</strong>.
+          En el celular usa la URL HTTPS del servidor.
+        </div>
+
+        <label class="field">
+          <span>Baudrate</span>
+          <select id="baudrate">
+            <option>9600</option>
+            <option>57600</option>
+            <option selected>115200</option>
+            <option>230400</option>
+            <option>460800</option>
+            <option>921600</option>
+          </select>
+        </label>
+
+        <label class="field" id="wrap-select">
+          <span>Puerto</span>
+          <select id="select-puerto" hidden></select>
+        </label>
+
+        <p class="puerto-actual">Dispositivo: <strong id="puerto-label">—</strong></p>
+
+        <div class="actions">
+          <button type="button" id="btn-elegir" class="btn ghost" hidden>Elegir puerto</button>
+          <button type="button" id="btn-refresh-puertos" class="btn ghost" hidden>Actualizar</button>
+          <button type="button" id="btn-conectar" class="btn primary">Conectar</button>
+          <button type="button" id="btn-desconectar" class="btn" disabled>Desconectar</button>
+        </div>
+
+        <label class="check block">
+          <input type="checkbox" id="chk-reconectar" checked />
+          Reconectar al reenchufar USB
+        </label>
+
+        <p id="dtr-warn" class="hint warn-inline" hidden>
+          Al abrir el puerto en Linux/macOS puede pulsar DTR y reiniciar la placa.
+        </p>
+
+        <p id="tip-movil" class="hint" hidden>
+          En Android: cable USB-OTG → equipo de telemetría → Chrome → Conectar.
+          iOS/Safari no soporta Web Serial.
+        </p>
+      </aside>
+
+      <section class="panel panel-assign">
+        <h2>Código del equipo</h2>
+        <p class="hint">Detecta la serie actual por serial, genera el código ZG con la API y lo escribe al dispositivo.</p>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>Código detectado / origen</span>
+            <input id="codigo-detectado" type="text" placeholder="ZG001" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Código nuevo (API)</span>
+            <input id="codigo-nuevo" type="text" readonly placeholder="—" />
+          </label>
+        </div>
+
+        <details class="advanced">
+          <summary>Comandos serial (firmware)</summary>
+          <label class="field">
+            <span>Consultar serie</span>
+            <input id="cmd-consultar" type="text" value="SERIE?" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Asignar (usa {codigo})</span>
+            <input id="cmd-asignar" type="text" value="SET_SERIE {codigo}" spellcheck="false" />
+          </label>
+        </details>
+
+        <div class="actions">
+          <button type="button" id="btn-consultar-serie" class="btn ghost">Leer serie</button>
+          <button type="button" id="btn-solo-generar" class="btn ghost">Solo generar en API</button>
+          <button type="button" id="btn-generar-asignar" class="btn primary">Generar y escribir al equipo</button>
+        </div>
+        <p id="mensaje-asignacion" class="mensaje" data-kind="sys"></p>
+      </section>
+
+      <section class="panel panel-console">
+        <div class="console-head">
+          <h2>Monitor serial</h2>
+          <div class="console-tools">
+            <span id="rx-meter" class="rx-meter" data-alive="0" title="Caudal RX">0 B/s</span>
+            <label class="check"><input type="checkbox" id="chk-timestamp" /> Hora</label>
+            <label class="check"><input type="checkbox" id="auto-scroll" checked /> Auto-scroll</label>
+            <button type="button" id="btn-pausa" class="btn tiny" data-on="0">Pausar vista</button>
+            <button type="button" id="btn-limpiar" class="btn tiny">Limpiar</button>
+          </div>
+        </div>
+        <div id="consola" class="consola" aria-live="off"></div>
+        <div class="tx-row">
+          <input id="input-tx" type="text" placeholder="Enviar comando…" autocomplete="off" spellcheck="false" />
+          <button type="button" id="btn-enviar" class="btn primary">Enviar</button>
+        </div>
+      </section>
+
+      <section class="panel panel-diag">
+        <div class="console-head">
+          <h2>Diagnóstico serial</h2>
+          <div class="console-tools">
+            <button type="button" id="btn-reenganche" class="btn tiny">Reenganchar RX</button>
+            <button type="button" id="btn-reabrir" class="btn tiny">Reabrir puerto</button>
+            <button type="button" id="btn-diag-copy" class="btn tiny">Copiar informe</button>
+            <button type="button" id="btn-diag-export" class="btn tiny">Exportar JSON</button>
+            <button type="button" id="btn-diag-reset" class="btn tiny">Reset diag</button>
+          </div>
+        </div>
+        <p class="hint">
+          Si el monitor se queda mudo, aquí se ve si el stream cerró (<code>done</code>), falló
+          <code>getReader</code>, hubo overrun o el bucle murió. Usa <em>Reabrir puerto</em> para recuperar.
+        </p>
+        <div id="diag-hipotesis" class="diag-hipotesis"></div>
+        <div class="diag-grid">
+          <pre id="diag-contadores" class="diag-box"></pre>
+          <pre id="diag-estado" class="diag-box"></pre>
+        </div>
+        <pre id="diag-eventos" class="diag-box diag-eventos"></pre>
+      </section>
+
+      <aside id="panel-ayuda" class="panel panel-help" hidden>
+        <h2>Cómo habilitar serial</h2>
+        <div data-web hidden>
+          <p>Usa <strong>Chrome / Edge / Opera</strong> (escritorio) o <strong>Chrome Android</strong> con USB-OTG.</p>
+        </div>
+        <ol>
+          <li>Conecta el equipo de telemetría por USB.</li>
+          <li>Abre esta página en un navegador con Web Serial, o instala el agente local.</li>
+          <li>Pulsa <em>Conectar</em>, lee la serie y genera el código ZG.</li>
+        </ol>
+        <p class="hint">
+          Agente local (nombres COM/tty reales):
+          <code>python -m agent</code> en el PC → escucha en <code>127.0.0.1:8765</code>.
+        </p>
+        <p class="hint">Linux: aplica las reglas udev de <code>deploy/99-ztrack-serial.rules</code>.</p>
+      </aside>
+    </main>
+
+    <footer class="foot">
+      <a href="/docs">API docs</a>
+      <a href="/serie/estadisticas">Estadísticas</a>
+      <span>Puerto API 9490</span>
+    </footer>
+
+    <script type="module" src="/serial/js/app.js"></script>
+  </body>
+</html>

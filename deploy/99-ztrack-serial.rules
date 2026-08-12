@@ -1,0 +1,16 @@
+# Acceso al usuario de la sesión física (mejor que meter a todos en dialout)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", TAG+="uaccess"
+
+# Que ModemManager no toque nuestros equipos
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Que brltty no secuestre el CH340
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", ENV{BRLTTY_BRAILLE_DRIVER}="", ENV{BRLTTY_NO_PROBE}="1"
