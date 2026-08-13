@@ -29,6 +29,11 @@ export function isSuperusuario() {
   return u?.rol === "superusuario";
 }
 
+export function isOperador() {
+  const u = getUser();
+  return u?.rol === "operador";
+}
+
 export function saveAuth(token, usuario) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(usuario));

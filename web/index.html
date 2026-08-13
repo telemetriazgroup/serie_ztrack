@@ -12,6 +12,13 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <script>
+      (function () {
+        var ua = navigator.userAgent || "";
+        if (/Android/i.test(ua)) document.documentElement.classList.add("android");
+        if (/Android|iPhone|iPad|iPod/i.test(ua)) document.documentElement.classList.add("movil");
+      })();
+    </script>
   </head>
   <body>
     <div class="bg-atmosphere" aria-hidden="true"></div>
@@ -32,9 +39,9 @@
     </header>
 
     <main class="layout">
-      <aside class="panel panel-conn">
+      <aside class="panel panel-conn" id="panel-conn">
         <h2>Conexión</h2>
-        <p class="hint">Sustituto del Monitor Serial de Arduino IDE. Funciona en Windows, Linux, macOS y Chrome Android (USB-OTG).</p>
+        <p class="hint hint-desktop">Sustituto del Monitor Serial de Arduino IDE. Funciona en Windows, Linux, macOS y Chrome Android (USB-OTG).</p>
 
         <div id="aviso-contexto" class="banner warn" hidden>
           Este sitio no está en contexto seguro. Web Serial requiere <strong>HTTPS</strong> o <strong>localhost</strong>.
@@ -83,7 +90,25 @@
         </p>
       </aside>
 
-      <section class="panel panel-assign">
+      <section class="panel panel-console">
+        <div class="console-head">
+          <h2>Monitor serial</h2>
+          <div class="console-tools">
+            <span id="rx-meter" class="rx-meter" data-alive="0" title="Caudal RX">0 B/s</span>
+            <label class="check check-extra"><input type="checkbox" id="chk-timestamp" /> Hora</label>
+            <label class="check check-extra"><input type="checkbox" id="auto-scroll" checked /> Auto-scroll</label>
+            <button type="button" id="btn-pausa" class="btn tiny" data-on="0">Pausar vista</button>
+            <button type="button" id="btn-limpiar" class="btn tiny">Limpiar</button>
+          </div>
+        </div>
+        <div id="consola" class="consola" aria-live="off"></div>
+        <div class="tx-row">
+          <input id="input-tx" type="text" placeholder="Enviar comando…" autocomplete="off" spellcheck="false" />
+          <button type="button" id="btn-enviar" class="btn primary">Enviar</button>
+        </div>
+      </section>
+
+      <section class="panel panel-assign" id="panel-assign" data-api hidden>
         <h2>Código del equipo</h2>
         <p class="hint">Detecta la serie actual por serial, genera el código ZG con la API y lo escribe al dispositivo.</p>
 
@@ -116,24 +141,6 @@
           <button type="button" id="btn-generar-asignar" class="btn primary">Generar y escribir al equipo</button>
         </div>
         <p id="mensaje-asignacion" class="mensaje" data-kind="sys"></p>
-      </section>
-
-      <section class="panel panel-console">
-        <div class="console-head">
-          <h2>Monitor serial</h2>
-          <div class="console-tools">
-            <span id="rx-meter" class="rx-meter" data-alive="0" title="Caudal RX">0 B/s</span>
-            <label class="check"><input type="checkbox" id="chk-timestamp" /> Hora</label>
-            <label class="check"><input type="checkbox" id="auto-scroll" checked /> Auto-scroll</label>
-            <button type="button" id="btn-pausa" class="btn tiny" data-on="0">Pausar vista</button>
-            <button type="button" id="btn-limpiar" class="btn tiny">Limpiar</button>
-          </div>
-        </div>
-        <div id="consola" class="consola" aria-live="off"></div>
-        <div class="tx-row">
-          <input id="input-tx" type="text" placeholder="Enviar comando…" autocomplete="off" spellcheck="false" />
-          <button type="button" id="btn-enviar" class="btn primary">Enviar</button>
-        </div>
       </section>
 
       <section class="panel panel-diag" id="panel-diag" hidden>
@@ -177,8 +184,10 @@
     </main>
 
     <footer class="foot">
-      <a href="/docs">API docs</a>
-      <a id="link-estadisticas" href="#">Estadísticas</a>
+      <span class="foot-api" data-api hidden>
+        <a href="/docs">API docs</a>
+        <a id="link-estadisticas" href="#">Estadísticas</a>
+      </span>
       <span>ZTrack Serie Monitor</span>
     </footer>
 

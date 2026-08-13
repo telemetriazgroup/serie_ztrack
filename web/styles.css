@@ -118,13 +118,20 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
   grid-template-areas:
-    "conn assign"
     "conn console"
+    "assign console"
     "diag diag";
   gap: 1rem;
   padding: 0.8rem 1.4rem 1.6rem;
+}
+
+.layout.sin-api {
+  grid-template-areas:
+    "conn console"
+    "conn console"
+    "diag diag";
 }
 
 .panel-conn {
@@ -139,7 +146,7 @@ body {
 
 .panel-console {
   grid-area: console;
-  min-height: 360px;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
   animation: fade-up 0.65s 0.1s ease both;
@@ -443,8 +450,8 @@ input.pulse {
 
 .consola {
   flex: 1;
-  min-height: 260px;
-  max-height: min(52vh, 520px);
+  min-height: 280px;
+  max-height: min(62vh, 640px);
   overflow: auto;
   background: #070e11;
   border: 1px solid var(--line);
@@ -473,6 +480,19 @@ input.pulse {
   padding: 0 1.4rem 1.4rem;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.foot-api {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+[hidden],
+.foot-api[hidden],
+.panel-assign[hidden],
+[data-api][hidden] {
+  display: none !important;
 }
 
 .auth-body {
@@ -631,12 +651,13 @@ input.pulse {
 }
 
 @media (max-width: 920px) {
-  .layout {
+  .layout,
+  .layout.sin-api {
     grid-template-columns: 1fr;
     grid-template-areas:
       "conn"
-      "assign"
       "console"
+      "assign"
       "diag";
     padding: 0.6rem 0.8rem 1.2rem;
   }
@@ -652,11 +673,127 @@ input.pulse {
     flex-direction: column;
   }
 
+  .panel-console {
+    min-height: 52vh;
+  }
+
   .consola {
-    max-height: 45vh;
+    max-height: none;
+    min-height: 42vh;
   }
 
   .actions .btn {
     flex: 1 1 auto;
   }
+}
+
+html.android .hint-desktop,
+html.movil .hint-desktop {
+  display: none;
+}
+
+html.android .layout,
+html.android .layout.sin-api,
+html.movil .layout,
+html.movil .layout.sin-api {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "conn"
+    "console"
+    "assign"
+    "diag";
+  gap: 0.65rem;
+  padding: 0.4rem 0.55rem 0.9rem;
+}
+
+html.android .top,
+html.movil .top {
+  padding: 0.5rem 0.55rem 0.2rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+html.android .brand-mark,
+html.movil .brand-mark {
+  font-size: 1.25rem;
+}
+
+html.android .brand-sub,
+html.movil .brand-sub {
+  font-size: 0.7rem;
+}
+
+html.android .top-meta,
+html.movil .top-meta {
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+html.android .pill,
+html.movil .pill {
+  font-size: 0.68rem;
+  padding: 0.25rem 0.5rem;
+}
+
+html.android .panel,
+html.movil .panel {
+  padding: 0.65rem 0.7rem 0.75rem;
+}
+
+html.android .panel-conn h2,
+html.movil .panel-conn h2 {
+  font-size: 0.92rem;
+  margin-bottom: 0.15rem;
+}
+
+html.android .field,
+html.movil .field {
+  margin-bottom: 0.45rem;
+}
+
+html.android .puerto-actual,
+html.movil .puerto-actual {
+  margin: 0.05rem 0 0.45rem;
+  font-size: 0.82rem;
+}
+
+html.android .check-extra,
+html.movil .check-extra {
+  display: none;
+}
+
+html.android .panel-console,
+html.movil .panel-console {
+  min-height: calc(100dvh - 13.5rem);
+}
+
+html.android .consola,
+html.movil .consola {
+  min-height: 46vh;
+  max-height: none;
+  font-size: 0.76rem;
+  line-height: 1.38;
+  padding: 0.5rem 0.55rem;
+}
+
+html.android .foot,
+html.movil .foot {
+  display: none;
+}
+
+html.android.serial-abierto #tip-movil,
+html.android.serial-abierto .check.block,
+html.android.serial-abierto #dtr-warn,
+html.android.serial-abierto .panel-conn h2,
+html.android.serial-abierto .panel-conn .field {
+  display: none;
+}
+
+html.android.serial-abierto .panel-conn {
+  padding: 0.5rem 0.65rem;
+}
+
+html.android.serial-abierto .panel-console {
+  min-height: calc(100dvh - 10.5rem);
 }

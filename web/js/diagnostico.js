@@ -30,6 +30,7 @@ export class DiagnosticoSerial {
       silencios: 0,
       getReaderFail: 0,
       networkErrors: 0,
+      nakUsb: 0,
     };
     this.estado = {
       conectado: false,
@@ -79,6 +80,9 @@ export class DiagnosticoSerial {
   }
 
   log(tipo, detalle) {
+    if (tipo === "webusb-nak" && detalle?.n != null) {
+      this.contadores.nakUsb = detalle.n;
+    }
     return this._pushEvento(tipo, detalle);
   }
 
@@ -234,14 +238,12 @@ export class DiagnosticoSerial {
         msg: "Bucle de lectura muerto con sesión 'conectada'. Bug de recuperación — usar Reabrir puerto.",
       });
     }
-    if (c.erroresStream > 2) {
+    if (c.erroresStream > 2 && s.transporte !== "webusb") {
       h.push({
         nivel: "media",
         msg: "Varios errores de stream (overrun/framing). Sube bufferSize, reduce carga UI o baja baud si hay cable largo.",
       });
     }
-    const basura = this.chunks.some((ch) => /[^\x09\x0a\x0d\x20-\x7e]/.test(ch.ascii.replace(/\./g, "")));
-    // chunks with many '.' from non-ascii
     const muchosPuntos = this.chunks.slice(0, 5).filter((ch) => (ch.ascii.match(/\./g) || []).length >= 3);
     if (muchosPuntos.length >= 1) {
       h.push({
@@ -249,10 +251,22 @@ export class DiagnosticoSerial {
         msg: "Bytes no ASCII al inicio (����): típico de reset DTR/boot o basura al abrir. No suele ser fatal.",
       });
     }
-    if (c.networkErrors > 0) {
+    if (s.transporte === "webusb" && c.nakUsb > 0) {
+      h.push({
+        nivel: "ok",
+        msg: `WebUSB NAK Android: ${c.nakUsb} (endpoint vacío). No es desconexión; el bucle debe seguir leyendo.`,
+      });
+    }
+    if (c.networkErrors > 0 && s.transporte !== "webusb") {
       h.push({
         nivel: "alta",
         msg: "NetworkError: desconexión USB física o driver CH340 soltó el puerto.",
+      });
+    }
+    if (c.networkErrors > 0 && s.transporte === "webusb" && !s.conectado) {
+      h.push({
+        nivel: "alta",
+        msg: "WebUSB se cerró con NetworkError real. Reconectar OTG y pulsar Conectar.",
       });
     }
     if (!h.length && s.conectado) {

@@ -1,7 +1,7 @@
 import { resolverTransporte, TransporteAgente } from "./transporte.js";
 import { ConsolaSerial, DecodificadorLineas } from "./consola.js";
 import { diagnostico } from "./diagnostico.js";
-import { apiFetch, apiUrl, isSuperusuario, logout, requireAuth } from "./auth.js";
+import { apiFetch, apiUrl, isOperador, isSuperusuario, logout, requireAuth } from "./auth.js";
 import { SesionTracker } from "./sesion_tracker.js";
 import {
   ProtocoloSerie,
@@ -52,6 +52,7 @@ const ui = {
   btnDiagExport: $("#btn-diag-export"),
   btnDiagReset: $("#btn-diag-reset"),
   panelDiag: $("#panel-diag"),
+  panelAssign: $("#panel-assign"),
   userPill: $("#user-pill"),
   navUsers: $("#nav-users"),
   btnLogout: $("#btn-logout"),
@@ -68,6 +69,8 @@ let lastCodigoUiAt = 0;
 let lastSilencioLog = 0;
 const tracker = new SesionTracker();
 let currentUser = null;
+let mostrarApi = false;
+const esAndroidUa = /Android/i.test(navigator.userAgent || "");
 
 function esContextoSeguro() {
   return window.isSecureContext;
@@ -95,22 +98,47 @@ function actualizarProtocolo() {
 }
 
 function actualizarCodigoUi(codigo) {
-  if (!codigo) return;
+  if (!codigo || !mostrarApi) return;
   const now = Date.now();
   // Evita reflows/animaciones en cada línea con el mismo código
   if (codigo === lastCodigoUi && now - lastCodigoUiAt < 2000) return;
   lastCodigoUi = codigo;
   lastCodigoUiAt = now;
-  ui.codigoDetectado.value = codigo;
+  if (ui.codigoDetectado) ui.codigoDetectado.value = codigo;
   tracker.setCodigoDetectado(codigo);
+}
+
+function aplicarRolYJerarquia() {
+  mostrarApi = isSuperusuario();
+  document.documentElement.classList.toggle("android", esAndroidUa);
+  document.documentElement.classList.toggle("rol-operador", isOperador());
+  document.documentElement.classList.toggle("rol-super", mostrarApi);
+  document.querySelector(".layout")?.classList.toggle("sin-api", !mostrarApi);
+
+  if (mostrarApi) {
+    if (ui.panelAssign) ui.panelAssign.hidden = false;
+    document.querySelectorAll("[data-api]").forEach((el) => {
+      el.hidden = false;
+    });
+  } else {
+    if (ui.panelAssign) ui.panelAssign.hidden = true;
+    document.querySelectorAll("[data-api]").forEach((el) => {
+      el.hidden = true;
+    });
+  }
+}
+
+function setSerialAbierto(abierto) {
+  document.documentElement.classList.toggle("serial-abierto", Boolean(abierto));
 }
 
 async function init() {
   currentUser = await requireAuth();
   if (!currentUser) return;
 
+  aplicarRolYJerarquia();
   if (ui.userPill) ui.userPill.textContent = `${currentUser.username} · ${currentUser.rol}`;
-  if (currentUser.rol === "superusuario") {
+  if (mostrarApi) {
     if (ui.navUsers) ui.navUsers.hidden = false;
     if (ui.panelDiag) ui.panelDiag.hidden = false;
   }
@@ -122,11 +150,11 @@ async function init() {
     tracker.cerrar("navegacion");
   });
   const linkStats = document.getElementById("link-estadisticas");
-  if (linkStats) linkStats.href = apiUrl("/serie/estadisticas");
+  if (linkStats && mostrarApi) linkStats.href = apiUrl("/serie/estadisticas");
 
   consola = new ConsolaSerial(ui.consola, {
-    maxLineas: 400,
-    maxCola: 2500,
+    maxLineas: esAndroidUa ? 180 : 400,
+    maxCola: esAndroidUa ? 900 : 2500,
     onMetricas: (m) => {
       if (!ui.rxMeter) return;
       const drop = m.descartadas ? ` · ↓${m.descartadas}` : "";
@@ -163,7 +191,7 @@ async function init() {
     ui.btnRefresh.hidden = true;
     ui.btnElegir.hidden = false;
     ui.ayuda.querySelector("[data-web]").hidden = false;
-    if (android) {
+    if (android && mostrarApi) {
       logSistema("Android: Web Serial no ve CH340. Se usa WebUSB (como Serial USB Terminal).", "sys");
       logSistema("Cierra Serial USB Terminal antes de conectar. Chrome + HTTPS + OTG.", "warn");
     }
@@ -182,7 +210,7 @@ async function init() {
   wireDiagnostico();
   setEstado(`Listo · modo ${modo}`);
   detectarMovil();
-  renderDiagnostico(diagnostico.snapshot());
+  if (mostrarApi) renderDiagnostico(diagnostico.snapshot());
 }
 
 function detectarMovil() {
@@ -198,7 +226,9 @@ function detectarMovil() {
   if (android) {
     const serial = "serial" in navigator;
     const usb = "usb" in navigator;
-    logSistema(`Capacidad Android · WebSerial=${serial} · WebUSB=${usb} · HTTPS=${window.isSecureContext}`, "sys");
+    if (mostrarApi) {
+      logSistema(`Capacidad Android · WebSerial=${serial} · WebUSB=${usb} · HTTPS=${window.isSecureContext}`, "sys");
+    }
     if (!usb) {
       logSistema("Este navegador no tiene WebUSB. Instala Chrome (no Firefox ni el navegador Samsung).", "err");
     }
@@ -212,18 +242,18 @@ function wireTransporte() {
     consola.contarBytes(bytes.byteLength || bytes.length || 0);
     const [lineas, chunk] = decoder.push(bytes);
 
-    // Detección de código solo en líneas completas (barato)
     if (Array.isArray(lineas)) {
       for (const linea of lineas) {
         consola.rxLinea(linea);
         tracker.push("rx", linea);
-        const codigos = protocolo.observarTexto(linea);
-        if (codigos.length) actualizarCodigoUi(protocolo.codigoDetectado || codigos[0]);
+        if (mostrarApi) {
+          const codigos = protocolo.observarTexto(linea);
+          if (codigos.length) actualizarCodigoUi(protocolo.codigoDetectado || codigos[0]);
+        }
       }
     }
 
-    // Fallback: chunk sin newline todavía puede traer ZG…
-    if (typeof chunk === "string" && chunk.includes("ZG")) {
+    if (mostrarApi && typeof chunk === "string" && chunk.includes("ZG")) {
       const codigos = extraerCodigos(chunk);
       if (codigos.length) {
         protocolo.observarTexto(codigos[codigos.length - 1]);
@@ -234,11 +264,12 @@ function wireTransporte() {
 
   transporte.onEstado((st) => {
     if (st.tipo === "conectado" || st.tipo === "reconectado") {
+      setSerialAbierto(true);
       setEstado(`Conectado · ${st.etiqueta || ui.puertoLabel.textContent || ""}`, true);
       if (st.etiqueta) ui.puertoLabel.textContent = st.etiqueta;
       ui.btnConectar.disabled = true;
       ui.btnDesconectar.disabled = false;
-      ui.dtrWarn.hidden = false;
+      if (!esAndroidUa) ui.dtrWarn.hidden = false;
       decoder = new DecodificadorLineas();
       if (st.tipo === "reconectado") {
         logSistema(st.mensaje || "Reconectado", "ok");
@@ -265,6 +296,7 @@ function wireTransporte() {
       setEstado("Reconectando…");
       logSistema(st.mensaje || "Reconectando…", "warn");
     } else if (st.tipo === "cerrado" || st.tipo === "desconectado") {
+      setSerialAbierto(false);
       setEstado(st.motivo ? `Desconectado: ${st.motivo}` : "Desconectado");
       ui.btnConectar.disabled = false;
       ui.btnDesconectar.disabled = true;
@@ -355,6 +387,7 @@ function renderDiagnostico(snap) {
     `reenganches: ${snap.contadores.reenganches}\n` +
     `reaperturas: ${snap.contadores.reaperturas}\n` +
     `networkErrors: ${snap.contadores.networkErrors}\n` +
+    `nakUsb: ${snap.contadores.nakUsb ?? 0}\n` +
     `descartesCola: ${snap.contadores.descartesCola}\n` +
     `silencios: ${snap.contadores.silencios}`;
 
@@ -459,7 +492,7 @@ ui.btnConectar?.addEventListener("click", async () => {
       const target = JSON.parse(opt.dataset.json);
       await transporte.abrir(target, { baudRate });
     }
-    logSistema(`Abierto a ${baudRate} baud · buffer ampliado · render por lotes`);
+    logSistema(esAndroidUa ? `Abierto a ${baudRate} baud` : `Abierto a ${baudRate} baud · buffer ampliado · render por lotes`);
   } catch (e) {
     logSistema(`No se pudo abrir: ${e.message}`, "err");
     if (/NetworkError|Failed to open|Access denied|Permission|already open|ocupado|reclamar/i.test(e.message)) {
@@ -512,6 +545,7 @@ ui.btnLimpiar?.addEventListener("click", () => {
 });
 
 ui.btnConsultar?.addEventListener("click", async () => {
+  if (!mostrarApi) return;
   if (!transporte?.conectado) {
     logSistema("Conecta el equipo primero", "warn");
     return;
@@ -541,6 +575,7 @@ ui.btnGenerar?.addEventListener("click", async () => {
 });
 
 async function flujoGenerar(escribirAlDispositivo) {
+  if (!mostrarApi) return;
   actualizarProtocolo();
   const origen = (ui.codigoDetectado.value || "").trim();
   if (!origen) {

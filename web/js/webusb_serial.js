@@ -46,10 +46,18 @@ function findBulkEndpoints(device) {
     for (const alt of iface.alternates) {
       let inEp = null;
       let outEp = null;
+      let inPkt = 32;
+      let outPkt = 32;
       for (const ep of alt.endpoints) {
         if (ep.type !== "bulk") continue;
-        if (ep.direction === "in") inEp = ep.endpointNumber;
-        if (ep.direction === "out") outEp = ep.endpointNumber;
+        if (ep.direction === "in") {
+          inEp = ep.endpointNumber;
+          inPkt = ep.packetSize || 32;
+        }
+        if (ep.direction === "out") {
+          outEp = ep.endpointNumber;
+          outPkt = ep.packetSize || 32;
+        }
       }
       if (inEp != null && outEp != null) {
         return {
@@ -58,6 +66,8 @@ function findBulkEndpoints(device) {
           classCode: alt.interfaceClass,
           inEp,
           outEp,
+          inPkt,
+          outPkt,
         };
       }
     }
@@ -190,7 +200,10 @@ export class TransporteWebUSB {
     this._onEstado = null;
     this._inEp = null;
     this._outEp = null;
+    this._inPkt = 32;
+    this._outPkt = 32;
     this._iface = null;
+    this._nakCount = 0;
     this._lecturaActiva = null;
     this._lastConfig = { baudRate: 115200 };
     this._info = {};
@@ -297,6 +310,9 @@ export class TransporteWebUSB {
     this._iface = eps.interfaceNumber;
     this._inEp = eps.inEp;
     this._outEp = eps.outEp;
+    this._inPkt = eps.inPkt || 32;
+    this._outPkt = eps.outPkt || 32;
+    this._nakCount = 0;
 
     try {
       await device.claimInterface(this._iface);
@@ -340,6 +356,13 @@ export class TransporteWebUSB {
       pid: device.productId,
       bucleLecturaVivo: true,
     });
+    diagnostico.log("webusb-eps", {
+      inEp: this._inEp,
+      outEp: this._outEp,
+      inPkt: this._inPkt,
+      iface: this._iface,
+      kind,
+    });
     this._emitEstado({
       tipo: "conectado",
       etiqueta: `${etiqueta} (WebUSB OTG)`,
@@ -349,13 +372,32 @@ export class TransporteWebUSB {
     });
   }
 
+  _esNakAndroid(e) {
+    const msg = String(e?.message || "");
+    return (
+      e?.name === "NetworkError" ||
+      /transfer error has occurred/i.test(msg) ||
+      /The transfer was cancelled/i.test(msg) ||
+      /InvalidStateError/i.test(String(e?.name || ""))
+    );
+  }
+
   async _bucleLectura() {
+    // CH340 FS: wMaxPacketSize = 32. Pedir 64 en Android provoca NetworkError
+    // y el sleep posterior pierde UART a 115200. NAK = "no hay bytes", no desconexión.
+    const pkt = this._inPkt || 32;
+    let consecutivos = 0;
+    let naks = 0;
+
     while (this.device?.opened && this._seguir) {
       try {
-        const r = await this.device.transferIn(this._inEp, 64);
+        const r = await this.device.transferIn(this._inEp, pkt);
+        consecutivos = 0;
         if (!this._seguir) break;
         if (r.status === "ok" && r.data && r.data.byteLength) {
-          const copy = new Uint8Array(r.data.buffer.slice(r.data.byteOffset, r.data.byteOffset + r.data.byteLength));
+          const copy = new Uint8Array(
+            r.data.buffer.slice(r.data.byteOffset, r.data.byteOffset + r.data.byteLength)
+          );
           diagnostico.noteChunk(copy, { via: "webusb" });
           this._onDatos?.(copy);
         } else if (r.status === "stall") {
@@ -363,12 +405,30 @@ export class TransporteWebUSB {
         }
       } catch (e) {
         if (!this._seguir) break;
+        consecutivos += 1;
+        if (this._esNakAndroid(e)) {
+          naks += 1;
+          this._nakCount = naks;
+          if (naks === 1 || naks % 100 === 0) {
+            diagnostico.log("webusb-nak", {
+              n: naks,
+              hint: "NAK/timeout de transferIn en Android (normal si no hay RX). No es desconexión.",
+            });
+          }
+          if (consecutivos === 20) {
+            await this.device.clearHalt("in", this._inEp).catch(() => {});
+          }
+          if (consecutivos > 8) {
+            await new Promise((r) => setTimeout(r, 2));
+          }
+          continue;
+        }
         diagnostico.noteErrorStream(e);
         this._emitEstado({
           tipo: "error-stream",
           mensaje: `WebUSB RX: ${e.message || e.name}`,
         });
-        await new Promise((r) => setTimeout(r, 80));
+        await new Promise((r) => setTimeout(r, 15));
       }
     }
   }
