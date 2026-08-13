@@ -28,6 +28,8 @@ const ui = {
   autoScroll: $("#auto-scroll"),
   btnLimpiar: $("#btn-limpiar"),
   btnPausa: $("#btn-pausa"),
+  btnDescargarTxt: $("#btn-descargar-txt"),
+  btnDescargarCsv: $("#btn-descargar-csv"),
   inputBuscar: $("#input-buscar"),
   btnBuscarPrev: $("#btn-buscar-prev"),
   btnBuscarNext: $("#btn-buscar-next"),
@@ -157,13 +159,11 @@ async function init() {
   if (linkStats && mostrarApi) linkStats.href = apiUrl("/serie/estadisticas");
 
   consola = new ConsolaSerial(ui.consola, {
-    maxLineas: 50,
-    maxCola: 250,
+    maxCola: 4000,
     onMetricas: (m) => {
       if (!ui.rxMeter) return;
-      const drop = m.descartadas ? ` · ↓${m.descartadas}` : "";
       const pause = m.pausado ? " · PAUSA" : "";
-      ui.rxMeter.textContent = `${m.bps} B/s · ${m.lineas}/50 líneas${drop}${pause}`;
+      ui.rxMeter.textContent = `${m.bps} B/s · ${m.lineas} líneas${pause}`;
       ui.rxMeter.dataset.alive = m.bps > 0 ? "1" : "0";
     },
     onBusqueda: (b) => {
@@ -547,7 +547,7 @@ ui.btnPausa?.addEventListener("click", () => {
   consola.setPausado(next);
   ui.btnPausa.textContent = next ? "Reanudar vista" : "Pausar vista";
   ui.btnPausa.dataset.on = next ? "1" : "0";
-  logSistema(next ? "Vista en pausa (RX sigue en background descartando display)" : "Vista reanudada", "sys");
+  logSistema(next ? "Vista en pausa (el serial sigue guardándose)" : "Vista reanudada", "sys");
 });
 
 ui.btnEnviar?.addEventListener("click", enviarTx);
@@ -578,6 +578,24 @@ async function enviarTx() {
 
 ui.btnLimpiar?.addEventListener("click", () => {
   consola.limpiar();
+});
+
+ui.btnDescargarTxt?.addEventListener("click", () => {
+  if (!consola?.totalLineas) {
+    logSistema("No hay contenido serial para descargar", "warn");
+    return;
+  }
+  consola.exportarTxt();
+  logSistema(`Descargado TXT (${consola.totalLineas} líneas)`, "ok");
+});
+
+ui.btnDescargarCsv?.addEventListener("click", () => {
+  if (!consola?.totalLineas) {
+    logSistema("No hay contenido serial para descargar", "warn");
+    return;
+  }
+  consola.exportarCsv();
+  logSistema(`Descargado CSV (${consola.totalLineas} líneas)`, "ok");
 });
 
 ui.btnConsultar?.addEventListener("click", async () => {

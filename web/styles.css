@@ -481,7 +481,7 @@ input.pulse {
   --console-fs: 0.8rem;
   --console-lh: 1.45;
   --console-pad-y: 0.7rem;
-  --console-lineas: 50;
+  --console-lineas: 50; /* alto visible del recuadro; el historial no se recorta */
   flex: none;
   height: min(
     70vh,
