@@ -1,5 +1,6 @@
 import { FILTROS_WEB_SERIAL, etiquetaPuerto } from "./catalogo.js";
 import { diagnostico } from "./diagnostico.js";
+import { esAndroid, TransporteWebUSB } from "./webusb_serial.js";
 
 /**
  * Interfaz común: Web Serial (navegador) o Agente local (pyserial).
@@ -121,16 +122,22 @@ export class TransporteWebSerial extends Transporte {
     });
   }
 
-  async pedirPuerto() {
+  async pedirPuerto(opts = {}) {
     if (!TransporteWebSerial.disponible()) {
       throw new Error("Este navegador no soporta Web Serial API");
     }
-    const port = await navigator.serial.requestPort({ filters: FILTROS_WEB_SERIAL });
+    // En Android los filtros ocultan CH340 (no es CDC). Sin filtros o WebUSB.
+    const req =
+      opts.sinFiltros || esAndroid()
+        ? {}
+        : { filters: FILTROS_WEB_SERIAL };
+    const port = await navigator.serial.requestPort(req);
     this._info = port.getInfo();
     return {
       id: "ws-selected",
       portRef: port,
       etiqueta: etiquetaPuerto(this._info),
+      _backend: "web-serial",
       ...this._info,
     };
   }
@@ -703,7 +710,134 @@ export class TransporteAgente extends Transporte {
 }
 
 /**
- * 1) Agente local → 2) Web Serial → 3) null (pantalla de ayuda)
+ * Unifica Web Serial (PC) + WebUSB (Android/CH340).
+ * En Android Chrome, CH340 no aparece en Web Serial: USB Serial Terminal
+ * sí lo ve porque trae driver propio. Aquí usamos WebUSB equivalente.
+ */
+export class TransporteNavegador extends Transporte {
+  constructor() {
+    super();
+    this.serial = TransporteWebSerial.disponible() ? new TransporteWebSerial() : null;
+    this.usb = TransporteWebUSB.disponible() ? new TransporteWebUSB() : null;
+    this.activo = null;
+    this._onDatos = null;
+    this._onEstado = null;
+    this._wire(this.serial);
+    this._wire(this.usb);
+  }
+
+  _wire(t) {
+    if (!t) return;
+    t.onDatos((b) => this._onDatos?.(b));
+    t.onEstado((s) => this._onEstado?.(s));
+  }
+
+  get nombre() {
+    return this.activo?.nombre || (esAndroid() ? "webusb" : "web-serial");
+  }
+
+  get conectado() {
+    return Boolean(this.activo?.conectado);
+  }
+
+  set autoReconectar(v) {
+    if (this.serial) this.serial.autoReconectar = v;
+    if (this.usb) this.usb.autoReconectar = v;
+  }
+
+  onDatos(cb) {
+    this._onDatos = cb;
+  }
+
+  onEstado(cb) {
+    this._onEstado = cb;
+  }
+
+  async listar() {
+    const a = this.serial ? await this.serial.listar() : [];
+    const b = this.usb ? await this.usb.listar() : [];
+    return [...a, ...b];
+  }
+
+  async pedirPuerto() {
+    const android = esAndroid();
+    const errores = [];
+
+    if (android && this.usb) {
+      try {
+        const p = await this.usb.pedirPuerto();
+        this.activo = this.usb;
+        p._backend = "webusb";
+        return p;
+      } catch (e) {
+        if (e.name !== "NotFoundError") errores.push(e.message);
+      }
+    }
+
+    if (this.serial) {
+      try {
+        const p = await this.serial.pedirPuerto({ sinFiltros: android });
+        this.activo = this.serial;
+        p._backend = "web-serial";
+        return p;
+      } catch (e) {
+        if (e.name !== "NotFoundError") errores.push(e.message);
+      }
+    }
+
+    if (!android && this.usb) {
+      try {
+        const p = await this.usb.pedirPuerto();
+        this.activo = this.usb;
+        p._backend = "webusb";
+        return p;
+      } catch (e) {
+        if (e.name !== "NotFoundError") errores.push(e.message);
+      }
+    }
+
+    throw new Error(
+      errores[0] ||
+        "No se eligió puerto. En Android: Chrome + HTTPS, cierra Serial USB Terminal y acepta el permiso USB OTG."
+    );
+  }
+
+  _elegirBackend(target) {
+    if (target?.device || target?._backend === "webusb") return this.usb;
+    if (target?.portRef && target._backend !== "webusb") return this.serial || this.activo;
+    return this.activo || (esAndroid() ? this.usb || this.serial : this.serial || this.usb);
+  }
+
+  async abrir(target, config) {
+    this.activo = this._elegirBackend(target);
+    if (!this.activo) throw new Error("Sin transporte USB/Serial");
+    return this.activo.abrir(target, config);
+  }
+
+  async escribir(bytes) {
+    if (!this.activo) throw new Error("Puerto no abierto");
+    return this.activo.escribir(bytes);
+  }
+
+  async senales(s) {
+    return this.activo?.senales?.(s);
+  }
+
+  async reengancharRx() {
+    return this.activo?.reengancharRx?.();
+  }
+
+  async reabrirPuerto() {
+    return this.activo?.reabrirPuerto?.();
+  }
+
+  async cerrar() {
+    await this.activo?.cerrar?.();
+  }
+}
+
+/**
+ * 1) Agente local → 2) Navegador (Serial y/o WebUSB) → 3) ayuda
  */
 export async function resolverTransporte() {
   const salud = await TransporteAgente.detectar();
@@ -714,12 +848,20 @@ export async function resolverTransporte() {
       detalle: salud,
     };
   }
-  if (TransporteWebSerial.disponible()) {
+  const serialOk = TransporteWebSerial.disponible();
+  const usbOk = TransporteWebUSB.disponible();
+  if (serialOk || usbOk) {
+    const modo = esAndroid() && usbOk ? "webusb" : serialOk ? "web-serial" : "webusb";
     return {
-      modo: "web-serial",
-      transporte: new TransporteWebSerial(),
-      detalle: { navegador: navigator.userAgent },
+      modo,
+      transporte: new TransporteNavegador(),
+      detalle: {
+        navegador: navigator.userAgent,
+        android: esAndroid(),
+        serial: serialOk,
+        webusb: usbOk,
+      },
     };
   }
-  return { modo: "ninguno", transporte: null, detalle: null };
+  return { modo: "ninguno", transporte: null, detalle: { android: esAndroid() } };
 }

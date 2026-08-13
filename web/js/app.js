@@ -151,13 +151,22 @@ async function init() {
     ui.btnRefresh.hidden = false;
     ui.btnElegir.hidden = true;
     await refrescarPuertosAgente();
-  } else if (modo === "web-serial") {
-    ui.modo.textContent = "Web Serial (navegador)";
-    ui.modo.dataset.mode = "web";
+  } else if (modo === "web-serial" || modo === "webusb") {
+    const android = /Android/i.test(navigator.userAgent);
+    ui.modo.textContent = android
+      ? "WebUSB OTG (Android / CH340)"
+      : modo === "webusb"
+        ? "WebUSB"
+        : "Web Serial (navegador)";
+    ui.modo.dataset.mode = android ? "agente" : "web";
     ui.selectPuerto.hidden = true;
     ui.btnRefresh.hidden = true;
     ui.btnElegir.hidden = false;
     ui.ayuda.querySelector("[data-web]").hidden = false;
+    if (android) {
+      logSistema("Android: Web Serial no ve CH340. Se usa WebUSB (como Serial USB Terminal).", "sys");
+      logSistema("Cierra Serial USB Terminal antes de conectar. Chrome + HTTPS + OTG.", "warn");
+    }
   } else {
     ui.modo.textContent = "Sin transporte serial";
     ui.modo.dataset.mode = "none";
@@ -177,13 +186,22 @@ async function init() {
 }
 
 function detectarMovil() {
+  const android = /Android/i.test(navigator.userAgent);
   const movil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (movil) {
     const tip = $("#tip-movil");
     if (tip) tip.hidden = false;
   }
   if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    logSistema("iOS/Safari no soporta Web Serial. Usa Chrome en Android con USB-OTG, o un PC.", "warn");
+    logSistema("iOS/Safari no soporta USB serial en web. Usa Chrome en Android o un PC.", "warn");
+  }
+  if (android) {
+    const serial = "serial" in navigator;
+    const usb = "usb" in navigator;
+    logSistema(`Capacidad Android · WebSerial=${serial} · WebUSB=${usb} · HTTPS=${window.isSecureContext}`, "sys");
+    if (!usb) {
+      logSistema("Este navegador no tiene WebUSB. Instala Chrome (no Firefox ni el navegador Samsung).", "err");
+    }
   }
 }
 
@@ -235,6 +253,8 @@ function wireTransporte() {
             pid: st.pid,
             usbVendorId: puertoWebElegido?.usbVendorId,
             usbProductId: puertoWebElegido?.usbProductId,
+            vid: puertoWebElegido?.usbVendorId || st.vid,
+            pid: puertoWebElegido?.usbProductId || st.pid,
             ruta: st.ruta,
             baudrate,
           })

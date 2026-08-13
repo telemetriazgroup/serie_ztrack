@@ -77,8 +77,9 @@
         </p>
 
         <p id="tip-movil" class="hint" hidden>
-          En Android: cable USB-OTG → equipo de telemetría → Chrome → Conectar.
-          iOS/Safari no soporta Web Serial.
+          Android: usa <strong>Chrome</strong> (no Serial USB Terminal abierto), cable
+          <strong>OTG</strong> y esta página por <strong>HTTPS</strong>. El CH340 no aparece
+          en Web Serial; se usa WebUSB. Acepta el permiso “USB” al pulsar Elegir puerto.
         </p>
       </aside>
 
@@ -161,18 +162,17 @@
       <aside id="panel-ayuda" class="panel panel-help" hidden>
         <h2>Cómo habilitar serial</h2>
         <div data-web hidden>
-          <p>Usa <strong>Chrome / Edge / Opera</strong> (escritorio) o <strong>Chrome Android</strong> con USB-OTG.</p>
+          <p>PC: <strong>Chrome / Edge / Opera</strong>. Android: <strong>Chrome</strong> + USB-OTG + HTTPS.</p>
         </div>
         <ol>
-          <li>Conecta el equipo de telemetría por USB.</li>
-          <li>Abre esta página en un navegador con Web Serial, o instala el agente local.</li>
-          <li>Pulsa <em>Conectar</em>, lee la serie y genera el código ZG.</li>
+          <li>Cierra Serial USB Terminal y cualquier otra app que use el USB.</li>
+          <li>Conecta el equipo con cable OTG (celular) o USB (PC).</li>
+          <li>Pulsa <em>Elegir puerto</em>, acepta el permiso USB y luego <em>Conectar</em>.</li>
         </ol>
         <p class="hint">
-          Agente local (nombres COM/tty reales):
-          <code>python -m agent</code> en el PC → escucha en <code>127.0.0.1:8765</code>.
+          En Android el CH340 no aparece en Web Serial (a diferencia de Windows/Linux).
+          Esta web usa <strong>WebUSB</strong>, el mismo tipo de acceso que Serial USB Terminal.
         </p>
-        <p class="hint">Linux: aplica las reglas udev de <code>deploy/99-ztrack-serial.rules</code>.</p>
       </aside>
     </main>
 
