@@ -101,6 +101,18 @@
             <button type="button" id="btn-limpiar" class="btn tiny">Limpiar</button>
           </div>
         </div>
+        <div class="console-search">
+          <input
+            id="input-buscar"
+            type="search"
+            placeholder="Buscar palabra o frase…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" id="btn-buscar-prev" class="btn tiny" title="Coincidencia anterior">↑</button>
+          <button type="button" id="btn-buscar-next" class="btn tiny" title="Coincidencia siguiente">↓</button>
+          <span id="buscar-count" class="buscar-count">—</span>
+        </div>
         <div id="consola" class="consola" aria-live="off"></div>
         <div class="tx-row">
           <input id="input-tx" type="text" placeholder="Enviar comando…" autocomplete="off" spellcheck="false" />

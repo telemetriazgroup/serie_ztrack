@@ -28,6 +28,10 @@ const ui = {
   autoScroll: $("#auto-scroll"),
   btnLimpiar: $("#btn-limpiar"),
   btnPausa: $("#btn-pausa"),
+  inputBuscar: $("#input-buscar"),
+  btnBuscarPrev: $("#btn-buscar-prev"),
+  btnBuscarNext: $("#btn-buscar-next"),
+  buscarCount: $("#buscar-count"),
   codigoDetectado: $("#codigo-detectado"),
   codigoNuevo: $("#codigo-nuevo"),
   mensajeAsignacion: $("#mensaje-asignacion"),
@@ -153,14 +157,25 @@ async function init() {
   if (linkStats && mostrarApi) linkStats.href = apiUrl("/serie/estadisticas");
 
   consola = new ConsolaSerial(ui.consola, {
-    maxLineas: esAndroidUa ? 180 : 400,
-    maxCola: esAndroidUa ? 900 : 2500,
+    maxLineas: 50,
+    maxCola: 250,
     onMetricas: (m) => {
       if (!ui.rxMeter) return;
       const drop = m.descartadas ? ` · ↓${m.descartadas}` : "";
       const pause = m.pausado ? " · PAUSA" : "";
-      ui.rxMeter.textContent = `${m.bps} B/s · ${m.lineas} líneas${drop}${pause}`;
+      ui.rxMeter.textContent = `${m.bps} B/s · ${m.lineas}/50 líneas${drop}${pause}`;
       ui.rxMeter.dataset.alive = m.bps > 0 ? "1" : "0";
+    },
+    onBusqueda: (b) => {
+      if (!ui.buscarCount) return;
+      if (!b.query) {
+        ui.buscarCount.textContent = "—";
+        ui.buscarCount.dataset.hits = "0";
+        return;
+      }
+      ui.buscarCount.textContent = b.total ? `${b.actual}/${b.total}` : "0/0";
+      ui.buscarCount.dataset.hits = b.total ? "1" : "0";
+      if (b.total && ui.autoScroll) ui.autoScroll.checked = false;
     },
   });
 
@@ -436,6 +451,27 @@ function wireUi() {
   });
   consola.setAutoScroll(ui.autoScroll?.checked ?? true);
   consola.setTimestamp(ui.chkTimestamp?.checked ?? false);
+
+  let buscarTimer = 0;
+  const aplicarBusqueda = () => {
+    consola.setBusqueda(ui.inputBuscar?.value || "");
+  };
+  ui.inputBuscar?.addEventListener("input", () => {
+    clearTimeout(buscarTimer);
+    buscarTimer = setTimeout(aplicarBusqueda, 120);
+  });
+  ui.inputBuscar?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (e.shiftKey) consola.anteriorMatch();
+      else consola.siguienteMatch();
+    } else if (e.key === "Escape") {
+      ui.inputBuscar.value = "";
+      consola.setBusqueda("");
+    }
+  });
+  ui.btnBuscarNext?.addEventListener("click", () => consola.siguienteMatch());
+  ui.btnBuscarPrev?.addEventListener("click", () => consola.anteriorMatch());
 }
 
 async function refrescarPuertosAgente() {

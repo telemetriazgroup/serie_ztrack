@@ -146,7 +146,7 @@ body {
 
 .panel-console {
   grid-area: console;
-  min-height: 420px;
+  min-height: unset;
   display: flex;
   flex-direction: column;
   animation: fade-up 0.65s 0.1s ease both;
@@ -448,22 +448,99 @@ input.pulse {
   color: var(--warn);
 }
 
-.consola {
-  flex: 1;
-  min-height: 280px;
-  max-height: min(62vh, 640px);
-  overflow: auto;
+.console-search {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0 0 0.5rem;
+}
+
+.console-search input[type="search"] {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.buscar-count {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  min-width: 3.2rem;
+  text-align: center;
+}
+
+.buscar-count[data-hits="1"] {
+  color: var(--accent);
+}
+
+.buscar-count[data-hits="0"] {
+  color: var(--warn);
+}
+
+.panel-console .consola {
+  --console-fs: 0.8rem;
+  --console-lh: 1.45;
+  --console-pad-y: 0.7rem;
+  --console-lineas: 50;
+  flex: none;
+  height: min(
+    70vh,
+    calc((var(--console-pad-y) * 2) + (var(--console-fs) * var(--console-lh) * var(--console-lineas)))
+  );
+  min-height: 8rem;
+  max-height: min(
+    70vh,
+    calc((var(--console-pad-y) * 2) + (var(--console-fs) * var(--console-lh) * var(--console-lineas)))
+  );
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
   background: #070e11;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 0.7rem 0.8rem;
+  padding: var(--console-pad-y) 0.55rem var(--console-pad-y) 0.8rem;
   font-family: var(--mono);
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: var(--console-fs);
+  line-height: var(--console-lh);
   white-space: pre-wrap;
   word-break: break-word;
   color: #c9e8ef;
   contain: content;
+}
+
+.panel-console .consola .ln {
+  min-height: calc(var(--console-fs) * var(--console-lh));
+}
+
+.panel-console .consola mark.hit {
+  background: rgba(240, 162, 2, 0.35);
+  color: #fff4d4;
+  border-radius: 3px;
+  padding: 0 0.08em;
+}
+
+.panel-console .consola mark.hit.current {
+  background: #f0a202;
+  color: #1a1200;
+}
+
+.panel-console .consola::-webkit-scrollbar {
+  width: 10px;
+}
+
+.panel-console .consola::-webkit-scrollbar-track {
+  background: #0a1418;
+  border-radius: 8px;
+}
+
+.panel-console .consola::-webkit-scrollbar-thumb {
+  background: rgba(46, 196, 182, 0.45);
+  border-radius: 8px;
+}
+
+.panel-console .consola::-webkit-scrollbar-thumb:hover {
+  background: rgba(46, 196, 182, 0.7);
 }
 
 .tx-row {
@@ -587,6 +664,17 @@ input.pulse {
 .sesion-log {
   margin-top: 0.7rem;
   max-height: 50vh;
+  overflow: auto;
+  background: #070e11;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #c9e8ef;
 }
 
 .top-meta a.pill {
@@ -674,12 +762,18 @@ input.pulse {
   }
 
   .panel-console {
-    min-height: 52vh;
+    min-height: unset;
   }
 
-  .consola {
-    max-height: none;
-    min-height: 42vh;
+  .panel-console .consola {
+    max-height: min(
+      calc((var(--console-pad-y) * 2) + (var(--console-fs) * var(--console-lh) * var(--console-lineas))),
+      52vh
+    );
+    height: min(
+      calc((var(--console-pad-y) * 2) + (var(--console-fs) * var(--console-lh) * var(--console-lineas))),
+      52vh
+    );
   }
 
   .actions .btn {
@@ -758,23 +852,39 @@ html.movil .puerto-actual {
   font-size: 0.82rem;
 }
 
-html.android .check-extra,
-html.movil .check-extra {
-  display: none;
+html.android .console-search,
+html.movil .console-search {
+  margin-bottom: 0.4rem;
+}
+
+html.android .console-search input[type="search"],
+html.movil .console-search input[type="search"] {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.78rem;
 }
 
 html.android .panel-console,
 html.movil .panel-console {
-  min-height: calc(100dvh - 13.5rem);
+  min-height: unset;
 }
 
-html.android .consola,
-html.movil .consola {
-  min-height: 46vh;
-  max-height: none;
-  font-size: 0.76rem;
-  line-height: 1.38;
-  padding: 0.5rem 0.55rem;
+html.android .panel-console .consola,
+html.movil .panel-console .consola {
+  --console-fs: 0.76rem;
+  --console-lh: 1.38;
+  --console-pad-y: 0.5rem;
+  height: min(
+    calc((var(--console-pad-y) * 2) + (var(--console-fs) * var(--console-lh) * var(--console-lineas))),
+    48vh
+  );
+  max-height: min(
+    calc((var(--console-pad-y) * 2) + (var(--console-fs) * var(--console-lh) * var(--console-lineas))),
+    48vh
+  );
+  min-height: 10rem;
+  font-size: var(--console-fs);
+  line-height: var(--console-lh);
+  padding: var(--console-pad-y) 0.4rem var(--console-pad-y) 0.55rem;
 }
 
 html.android .foot,
@@ -795,5 +905,5 @@ html.android.serial-abierto .panel-conn {
 }
 
 html.android.serial-abierto .panel-console {
-  min-height: calc(100dvh - 10.5rem);
+  min-height: unset;
 }
