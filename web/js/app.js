@@ -445,10 +445,12 @@ ui.btnRefresh?.addEventListener("click", () => {
 ui.btnConectar?.addEventListener("click", async () => {
   try {
     const baudRate = Number(ui.baud.value);
-    if (modo === "web-serial") {
+    const esNavegador = modo === "web-serial" || modo === "webusb" || modo === "navegador";
+    if (esNavegador) {
       if (!puertoWebElegido) {
         puertoWebElegido = await transporte.pedirPuerto();
         ui.puertoLabel.textContent = puertoWebElegido.etiqueta;
+        logSistema(`Puerto autorizado: ${puertoWebElegido.etiqueta}`);
       }
       await transporte.abrir(puertoWebElegido, { baudRate, bufferSize: 65536 });
     } else {
@@ -460,8 +462,8 @@ ui.btnConectar?.addEventListener("click", async () => {
     logSistema(`Abierto a ${baudRate} baud · buffer ampliado · render por lotes`);
   } catch (e) {
     logSistema(`No se pudo abrir: ${e.message}`, "err");
-    if (/NetworkError|Failed to open|Access denied|Permission|already open/i.test(e.message)) {
-      logSistema("¿El puerto está ocupado por Arduino IDE / screen / otro monitor?", "warn");
+    if (/NetworkError|Failed to open|Access denied|Permission|already open|ocupado|reclamar/i.test(e.message)) {
+      logSistema("¿El puerto está ocupado por Serial USB Terminal u otra app?", "warn");
     }
   }
 });

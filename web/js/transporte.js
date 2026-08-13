@@ -811,7 +811,14 @@ export class TransporteNavegador extends Transporte {
   async abrir(target, config) {
     this.activo = this._elegirBackend(target);
     if (!this.activo) throw new Error("Sin transporte USB/Serial");
-    return this.activo.abrir(target, config);
+    const dest = target?.device
+      ? target
+      : target?.portRef
+        ? target
+        : this.activo.device
+          ? { device: this.activo.device, portRef: this.activo.device }
+          : target;
+    return this.activo.abrir(dest, config);
   }
 
   async escribir(bytes) {
